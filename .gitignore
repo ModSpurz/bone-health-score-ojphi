@@ -1,0 +1,18 @@
+# NEVER commit participant-level health data, database exports or credentials.
+.env
+.env.*
+*.csv
+*.xlsx
+*.xls
+*.sqlite
+*.db
+*.parquet
+*.ipynb
+*.zip
+aggregate_outputs/
+private_data/
+data/
+__pycache__/
+*.py[cod]
+.DS_Store
+node_modules/
