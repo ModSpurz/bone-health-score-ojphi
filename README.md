@@ -1,69 +1,82 @@
-# Bone Health Score — OJPHI reproducibility code
+# Bone Health Score
 
-**Release candidate — not yet published.** This repository contains code but **no individual-level study data**, nicknames, private database exports, credentials, or application secrets.
+**Application Algorithms and Reproducible Analysis**
 
-Associated manuscript: *Real-World Deployment of a Web-Based Bone Health Self-Assessment Tool in Thailand: A Descriptive Cross-Sectional Study* (OJPHI #104939).
+This repository contains the application scoring logic, DXA-consideration rules, and Python analysis code associated with the study:
 
-## What is included
+*Real-World Deployment of a Web-Based Bone Health Self-Assessment Tool in Thailand: A Descriptive Cross-Sectional Study*
 
-- `analysis/reproduce_analysis.py`: consolidated Python 3 analysis script for reproducing the reported descriptive results. Reconstructs the study cohort from an authorized private database export, repeats the selected DXA and unfavorable-factor sensitivity analyses, and evaluates probable repeat assessments.
-- `app_rules/archived_calculations.ts`: a byte-for-byte source snapshot of the application calculation module provided by the investigators. It retains application imports and is supplied for code review, not standalone execution.
-- `app_rules/scoring_dxa_rules.ts`: isolated TypeScript versions of the application-generated Bone Health Score, its categories, and the DXA-consideration prompt. The functions omit database access, user identification, display code, and nonessential application features.
-- `tests/test_analysis.py` and `tests/synthetic_rules.test.mjs`: synthetic-data unit tests. None of the test cases represent study participants.
+The code is provided to support methodological transparency, inspection of the rule-based application outputs, and reproducibility of the reported descriptive and sensitivity analyses.
 
-**Code scope:** The repository preserves the archived application calculation module and provides isolated scoring and DXA-prompt functions for direct inspection. The public-release Python script consolidates the documented cohort-selection, descriptive, and sensitivity-analysis procedures, with added verification checks; its outputs were checked against the archived study export and the earlier analysis audit workbook. This source collection does not establish an independently verifiable deployment date for every historical app version.
+## Repository contents
 
-## Reproduce the aggregate analysis
+| File | Description |
+| --- | --- |
+| `analysis/reproduce_analysis.py` | Python implementation of cohort selection, descriptive analyses, repeat-assessment sensitivity analysis, and DXA-prompt sensitivity analyses. |
+| `app_rules/archived_calculations.ts` | Archived application calculation module containing scoring and DXA logic, along with application-specific functions and imports. |
+| `app_rules/scoring_dxa_rules.ts` | Standalone scoring and DXA-prompt functions, separated from database and interface operations for easier inspection and testing. |
+| `tests/test_analysis.py` | Python unit tests using synthetic records. |
+| `tests/synthetic_rules.test.mjs` | Synthetic tests for scoring thresholds and DXA-prompt rules. |
 
-The full export consists of 304 submitted records and is **not included** because it contains linkable health-related responses. Authorized investigators with a local copy can run:
+The Python analysis script consolidates the study's documented data-processing and statistical procedures and includes consistency checks for key reported results. The isolated TypeScript functions were verified against the archived application calculation module.
+
+## Study data and analytical cohort
+
+The retrospective study used completed assessments submitted between **October 9 and December 20, 2025**. The database export contained 304 records, of which eight were outside the study period and 40 were internal application-testing submissions. The primary analytical dataset comprised **256 eligible completed assessments**.
+
+Because users were not authenticated, the unit of analysis was the **completed assessment**, rather than a confirmed unique individual. A sensitivity analysis retained the earliest assessment within probable repeat clusters identified using normalized nicknames and concordant demographic and anthropometric characteristics, resulting in **243 assessments**.
+
+The primary analysis was descriptive. The application-generated Bone Health Score and DXA-consideration prompt are rule-based outputs and should not be interpreted as clinically validated diagnostic or risk classifications. The DXA-prompt rules reflect selected criteria captured by the questionnaire, not the full set of Thai Osteoporosis Foundation indications.
+
+## Reproducing the analysis
+
+**Requirements:** Python 3.10 or later. The analysis uses the Python standard library; no additional Python packages are required.
+
+With authorized access to the original structured data export, run:
 
 ```bash
-python analysis/reproduce_analysis.py --input /private/path/scores_rows.csv --output /private/path/aggregate_outputs
+python analysis/reproduce_analysis.py \
+  --input /path/to/private/scores_rows.csv \
+  --output /path/to/private/aggregate_outputs
 ```
 
-The script requires Python 3.10+ and its standard library only. The input must preserve the archived CSV column names, JSON-valued fracture-history field, and submission timestamps. Excel (`.xlsx`) users should export a CSV copy first. An older export containing only 261 records will *not* reproduce the final analytic cohort.
+The input CSV must preserve the original column names and data representations, including JSON-formatted fracture-history responses and submission timestamps. The output folder should be **outside this GitHub repository**.
 
-The analysis creates aggregate-only summaries (`analysis_summary.json`, S3–S6 CSV summaries, and `verification_report.json`). The built-in manuscript-specific checks verify the published 304 → 296 → 256 cohort flow, major results, and repeat-sensitivity cohort of 243 assessments. These checks intentionally fail if a different data export is provided. Outputs must be kept outside the public Git repository.
+The script generates aggregate summaries and tables for descriptive and sensitivity analyses, together with a verification report. Its principal steps are:
 
-### Dataset and study rules used
+1. Select records within the study period and exclude internal test submissions.
+2. Apply the adult eligibility criterion (age ≥20 years).
+3. Calculate descriptive summaries, score distributions, and DXA-prompt frequencies.
+4. Identify probable repeat-assessment clusters using matching nicknames after trimming whitespace and ignoring letter case; require identical recorded age and sex and weight/height differences of no more than 0.5 kg/0.5 cm.
+5. Repeat the selected descriptive analyses after retaining the earliest assessment within each probable repeat cluster.
+6. Perform the reported DXA-prompt and unfavorable-factor sensitivity analyses.
 
-- Study period: October 9 to December 20, 2025, inclusive (date component of the archived timestamp).
-- Team-designated internal test identifiers: `test`, `Test`, and `Tester`. The exclusion check trims leading/trailing whitespace and case-folds; 40 in-period records are excluded on this basis. The investigators confirmed these were team testing identifiers; do not infer that this procedure was specified before deployment.
-- Adult eligibility: age ≥20 years. No additional in-period non-test record was excluded for age <20 years in the examined export. No numeric-plausibility exclusions were made.
-- Unit of analysis: **completed assessment**, not verified individual.
-- Repeated nicknames: strip leading/trailing whitespace and case-fold, **without fuzzy spelling matches**; review matching sex, age, weight, and height. The deterministic sensitivity implementation requires matching sex and age and differences ≤0.5 kg and ≤0.5 cm, respectively. It groups concordant records into connected components and retains the earliest assessment in each probable cluster. These are not confirmed identities.
-- Application-defined score categories and DXA prompts are rule-based outputs, **not** externally validated clinical risk classifications or full TOPF eligibility determinations.
-- The menopause-default sensitivity excludes female records aged 45–64 with the stored default response, changing the denominator from 254 to 226; the percentages are therefore not paired comparisons.
-- Descriptive summaries use sample SD and interpolated quartiles matching conventional pandas defaults. Percentages are formatted to one decimal place.
+The repeat-assessment procedure identifies *probable* repeated submissions, not verified individual identities. For the menopause-default sensitivity analysis, excluding records with the relevant default response changes the evaluable denominator; its percentages are not directly comparable as paired estimates.
 
-## Run synthetic tests (no health records required)
+## Application rules and testing
 
-For Python:
+The standalone TypeScript module provides the weighted Bone Health Score, score categories, and DXA-consideration logic without requiring the original web application's database connection. The archived application module is included as a source reference and retains imports that depend on the original application environment.
+
+To run the included synthetic tests:
 
 ```bash
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-For isolated TypeScript rules (Node.js 22+ with built-in TypeScript type stripping):
+With Node.js 22 or later:
 
 ```bash
 node --experimental-strip-types tests/synthetic_rules.test.mjs
 ```
 
-The Python standard-library smoke tests check nickname normalization, multi-field repeat detection, age logic, and menopause-default handling. The TypeScript synthetic tests cover scoring weights, category thresholds, age boundaries, and selected DXA rules. These synthetic tests are separate from the private author verification against the full study dataset.
+The scoring and DXA implementations were checked against the archived application logic, and the aggregate analytical outputs were checked against the reported study results. Synthetic tests contain no actual participant records.
 
-## Independent verification performed by investigators' analysis team
+## Data availability and privacy
 
-With the archived private 304-record export, the Python implementation matched **45/45** prespecified aggregate checks. The score was recalculated from questionnaire inputs and matched the archived `final_score` for **256/256** study assessments. A private source-equivalence comparison of the isolated TypeScript functions against the supplied archived `calculations.ts` found no differences in score, score category, or DXA decision across **364 input sets** (256 study assessments plus 108 synthetic boundary cases). Neither the private input data nor those record-level comparisons are part of this public package.
+**Individual-level assessment data are not included in this repository.** The underlying dataset contains linkable, self-reported health-related information. Access to de-identified analytical data, where permitted, is subject to the institutional ethics and data-governance conditions described in the associated manuscript.
 
-The public code enables methodological inspection and repetition when an approved dataset is available; it cannot recreate participant-based tables from no dataset.
+The repository contains research code and documentation only; it does not contain user nicknames, participant-level exports, credentials, or database connection secrets. Public availability of the code does not imply public availability of the study dataset.
 
-## Data protection and limitations
+## Citation
 
-This repository must not contain raw study data, even as sample screenshots, Git commit history, notebook outputs, database connections, or test fixtures. No participant-level dataset is public. De-identified data sharing, if any, is subject to the manuscript's Data Availability statement and ethics/data-governance approval.
-
-The archived `calculations.ts` also contains personalized Thai-language recommendations, database operations, and a percentile display; these are deliberately excluded from the isolated scoring and DXA rule module. The analysis script reads stored `final_score` for manuscript summaries rather than rewriting historical scores.
-
-## Repository release notes
-
-Before making the repository public, confirm permission to redistribute the hospital application code and check that no credential files, confidential data, or participant-level extracts were added. The archived calculation module imports the original app-specific `types` and `supabase` modules, which are intentionally not provided; use the isolated rule file and its tests for executable verification.
+When using or referencing this repository, please cite the associated study and identify the repository version or commit used. Bibliographic details can be linked to the article upon publication.
