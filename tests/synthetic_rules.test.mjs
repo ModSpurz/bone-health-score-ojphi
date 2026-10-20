@@ -32,6 +32,7 @@ function equals(got, expected, meaning) {
   checks += 1;
 }
 
+// Scoring and labels are application-defined, not validated clinical risk strata.
 equals(boneHealthScore(sample()), 110, 'baseline scoring');
 equals(boneHealthScore(sample({input_smoking: true})), 100, 'smoking weight');
 equals(boneHealthScore(sample({input_exercise: '3_plus_times'})), 120, 'exercise weight');
@@ -43,6 +44,7 @@ equals(scoreCategory(94), 'needs improvement', 'score at 94');
 equals(scoreCategory(95), 'good', 'score at 95');
 equals(scoreCategory(125), 'good', 'score at 125');
 equals(scoreCategory(126), 'excellent', 'score at 126');
+// DXA logic: age > 50 gate, sex-specific age trigger, selected non-age items.
 equals(dxaConsiderationPrompt(sample({input_age: 50, input_steroids: true})), false, 'age gate at 50');
 equals(dxaConsiderationPrompt(sample({input_age: 51, input_steroids: true})), true, 'steroids at 51');
 equals(dxaConsiderationPrompt(sample({input_age: 64})), false, 'woman 64 without criteria');
