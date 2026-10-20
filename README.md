@@ -79,4 +79,14 @@ The repository contains research code and documentation only; it does not contai
 
 ## Citation
 
-When using or referencing this repository, please cite the associated study and identify the repository version or commit used. Bibliographic details can be linked to the article upon publication.
+**Associated publication**
+
+Suwanaratana R, Rujiraphan T, Lordkaew N, Chanalithichai N. *Real-World Deployment of a Web-Based Bone Health Self-Assessment Tool in Thailand: A Descriptive Cross-Sectional Study.* Online Journal of Public Health Informatics. [Publication details and DOI to be added upon publication.]
+
+**Software repository**
+
+Suwanaratana R. *Bone Health Score: Application Algorithms and Reproducible Analysis* [Computer software]. GitHub; 2026.
+
+https://github.com/ModSpurz/bone-health-score-ojphi
+
+When citing the software, please specify the version or commit used to support reproducibility.
