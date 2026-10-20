@@ -299,6 +299,8 @@ def analyze(rows: list[dict]) -> dict:
     is_test = lambda r: nickname_key(r["nickname"]) in INTERNAL_TEST_LABELS
     tests = [r for r in inperiod if is_test(r)]
     public_submissions = [r for r in inperiod if not is_test(r)]
+    # Adult eligibility was part of the study definition. In the reviewed
+    # export, this screen excludes no further assessments.
     below_adult_age = [r for r in public_submissions if as_int(r, "input_age") < 20]
     primary = [r for r in public_submissions if as_int(r, "input_age") >= 20]
     sensitivity, repeat_meta = deduplicate_probable_repeats(primary)
